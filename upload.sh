@@ -1,4 +1,5 @@
 rm -rf ./bin
+rm -rf ./chaosd-linux-amd64
 make chaosd
 make chaos-tools
 mv bin chaosd-linux-amd64
