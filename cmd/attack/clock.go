@@ -54,7 +54,7 @@ func NewClockAttackCommand(uid *string) *cobra.Command {
 		"The identifier of the particular clock on which to act."+
 			"More clock description in linux kernel can be found in man page of clock_getres, clock_gettime, clock_settime."+
 			"Muti clock ids should be split with \",\"")
-	cmd.Flags().BoolVarP(&options.WithChild, "with-child", "child", false, "change child processes' clock")
+	cmd.Flags().BoolVarP(&options.WithChild, "with-child", "d", false, "change child processes' clock")
 	return cmd
 }
 
