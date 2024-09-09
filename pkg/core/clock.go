@@ -34,8 +34,9 @@ const (
 type ClockOption struct {
 	CommonAttackConfig
 
-	Pid       int  `json:"pid,omitempty"`
-	WithChild bool `json:"with-child,omitempty"`
+	Pid       int    `json:"pid,omitempty"`
+	WithChild bool   `json:"with-child,omitempty"`
+	Name      string `json:"name,omitempty"`
 
 	TimeOffset string `json:"time-offset,omitempty"`
 	SecDelta   int64

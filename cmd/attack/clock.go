@@ -14,9 +14,14 @@
 package attack
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/go-logr/zapr"
+	"github.com/pingcap/errors"
 	"go.uber.org/zap"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"
@@ -49,6 +54,7 @@ func NewClockAttackCommand(uid *string) *cobra.Command {
 	}
 
 	cmd.Flags().IntVarP(&options.Pid, "pid", "p", 0, "Pid of target program.")
+	cmd.Flags().StringVarP(&options.Name, "name", "n", "", "Name of target program.")
 	cmd.Flags().StringVarP(&options.TimeOffset, "time-offset", "t", "", "Specifies the length of time offset.")
 	cmd.Flags().StringVarP(&options.ClockIdsSlice, "clock-ids-slice", "c", "CLOCK_REALTIME",
 		"The identifier of the particular clock on which to act."+
@@ -68,6 +74,12 @@ func processClockAttack(options *core.ClockOption, chaos *chaosd.Server) {
 		utils.ExitWithError(utils.ExitError, err)
 	}
 
+	if options.Pid == 0 && options.Name != "" {
+		options.Pid, err = getPIDByProcessName(options.Name)
+		if err != nil {
+			utils.ExitWithError(utils.ExitError, err)
+		}
+	}
 	childProcess, err := util.GetChildProcesses(uint32(options.Pid), zapr.NewLogger(zapLogger).WithName("Clock Attack"))
 	if err != nil {
 		utils.ExitWithError(utils.ExitError, err)
@@ -86,4 +98,30 @@ func processClockAttack(options *core.ClockOption, chaos *chaosd.Server) {
 		fmt.Printf("Clock attack %v successfully, pid: %d, uid: %s\n", options, options.Pid, uid)
 	}
 	utils.NormalExit("")
+}
+
+// getPIDByProcessName 根据进程名获取进程ID
+func getPIDByProcessName(processName string) (int, error) {
+	// 执行 ps 命令来获取进程信息
+	cmd := exec.Command("ps", "-e", "-o", "pid,comm") // "-e"：列出所有进程，"-o"：设置输出格式
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+
+	if err != nil {
+		return 0, err
+	}
+
+	// 解析命令的输出
+	outputLines := strings.Split(out.String(), "\n")
+	for _, line := range outputLines {
+		if strings.Contains(line, processName) {
+			parts := strings.Fields(line) // 获取行中各部分
+			if len(parts) > 0 {
+				return strconv.Atoi(parts[0])
+			}
+		}
+	}
+
+	return 0, errors.New("not found pid by process name")
 }

@@ -66,6 +66,9 @@ func recoverCommandF(chaos *chaosd.Server, options *recoverCommand) {
 			utils.ExitWithError(utils.ExitError, err)
 		}
 		for _, v := range exps {
+			if v.Status != core.Success {
+				continue
+			}
 			err = chaos.RecoverAttack(v.Uid)
 			if err != nil {
 				utils.ExitWithError(utils.ExitError, err)
