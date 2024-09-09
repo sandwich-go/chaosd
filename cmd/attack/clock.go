@@ -15,6 +15,8 @@ package attack
 
 import (
 	"fmt"
+	"github.com/go-logr/zapr"
+	"go.uber.org/zap"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"
@@ -23,6 +25,8 @@ import (
 	"github.com/chaos-mesh/chaosd/pkg/core"
 	"github.com/chaos-mesh/chaosd/pkg/server/chaosd"
 	"github.com/chaos-mesh/chaosd/pkg/utils"
+
+	"github.com/chaos-mesh/chaos-mesh/pkg/chaosdaemon/util"
 )
 
 func NewClockAttackCommand(uid *string) *cobra.Command {
@@ -50,6 +54,7 @@ func NewClockAttackCommand(uid *string) *cobra.Command {
 		"The identifier of the particular clock on which to act."+
 			"More clock description in linux kernel can be found in man page of clock_getres, clock_gettime, clock_settime."+
 			"Muti clock ids should be split with \",\"")
+	cmd.Flags().BoolVarP(&options.WithChild, "with-child", "child", false, "change child processes' clock")
 	return cmd
 }
 
@@ -58,11 +63,27 @@ func processClockAttack(options *core.ClockOption, chaos *chaosd.Server) {
 	if err != nil {
 		utils.ExitWithError(utils.ExitBadArgs, err)
 	}
-
-	uid, err := chaos.ExecuteAttack(chaosd.ClockAttack, options, core.CommandMode)
+	zapLogger, err := zap.NewDevelopment()
 	if err != nil {
 		utils.ExitWithError(utils.ExitError, err)
 	}
 
-	utils.NormalExit(fmt.Sprintf("Clock attack %v successfully, uid: %s", options, uid))
+	childProcess, err := util.GetChildProcesses(uint32(options.Pid), zapr.NewLogger(zapLogger).WithName("Clock Attack"))
+	if err != nil {
+		utils.ExitWithError(utils.ExitError, err)
+	}
+	uid, err := chaos.ExecuteAttack(chaosd.ClockAttack, options, core.CommandMode)
+	if err != nil {
+		utils.ExitWithError(utils.ExitError, err)
+	}
+	fmt.Printf("Clock attack %v successfully, pid: %d, uid: %s\n", options, options.Pid, uid)
+	for _, childPid := range childProcess {
+		options.Pid = int(childPid)
+		uid, err = chaos.ExecuteAttack(chaosd.ClockAttack, options, core.CommandMode)
+		if err != nil {
+			utils.ExitWithError(utils.ExitError, err)
+		}
+		fmt.Printf("Clock attack %v successfully, pid: %d, uid: %s\n", options, options.Pid, uid)
+	}
+	utils.NormalExit("")
 }

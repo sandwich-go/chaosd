@@ -193,6 +193,7 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.23.1
 	k8s.io/metrics => k8s.io/metrics v0.23.1
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.23.1
+	nhooyr.io/websocket => github.com/coder/websocket v1.8.12
 	vbom.ml/util => github.com/fvbommel/util v0.0.2
 )
 

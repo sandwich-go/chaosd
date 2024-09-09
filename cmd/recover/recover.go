@@ -16,6 +16,7 @@ package recover
 import (
 	"context"
 	"fmt"
+	"github.com/chaos-mesh/chaosd/pkg/core"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"
@@ -30,6 +31,7 @@ import (
 
 type recoverCommand struct {
 	uid string
+	all bool
 }
 
 func NewRecoverCommand() *cobra.Command {
@@ -47,23 +49,38 @@ func NewRecoverCommand() *cobra.Command {
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: completeUid,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				utils.ExitWithMsg(utils.ExitBadArgs, "UID is required")
+			if len(args) > 0 {
+				options.uid = args[0]
 			}
-			options.uid = args[0]
 			utils.FxNewAppWithoutLog(dep, fx.Invoke(recoverCommandF)).Run()
 		},
 	}
+	cmd.Flags().BoolVarP(&options.all, "all", "A", false, "recover all chaos attacks")
 	return cmd
 }
 
 func recoverCommandF(chaos *chaosd.Server, options *recoverCommand) {
-	err := chaos.RecoverAttack(options.uid)
-	if err != nil {
-		utils.ExitWithError(utils.ExitError, err)
+	if options.all {
+		exps, err := chaos.Search(&core.SearchCommand{All: true})
+		if err != nil {
+			utils.ExitWithError(utils.ExitError, err)
+		}
+		for _, v := range exps {
+			err = chaos.RecoverAttack(v.Uid)
+			if err != nil {
+				utils.ExitWithError(utils.ExitError, err)
+			}
+			fmt.Printf("Recover uid: %s successfully\n", v.Uid)
+		}
+	} else {
+		err := chaos.RecoverAttack(options.uid)
+		if err != nil {
+			utils.ExitWithError(utils.ExitError, err)
+		}
+		fmt.Printf("Recover uid: %s successfully\n", options.uid)
 	}
 
-	utils.NormalExit(fmt.Sprintf("Recover %s successfully", options.uid))
+	utils.NormalExit("")
 }
 
 func completeUid(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
