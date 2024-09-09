@@ -65,6 +65,13 @@ func NewClockAttackCommand(uid *string) *cobra.Command {
 }
 
 func processClockAttack(options *core.ClockOption, chaos *chaosd.Server) {
+	if options.Pid == 0 && options.Name != "" {
+		var err error
+		options.Pid, err = getPIDByProcessName(options.Name)
+		if err != nil {
+			utils.ExitWithError(utils.ExitError, err)
+		}
+	}
 	err := options.PreProcess()
 	if err != nil {
 		utils.ExitWithError(utils.ExitBadArgs, err)
@@ -72,13 +79,6 @@ func processClockAttack(options *core.ClockOption, chaos *chaosd.Server) {
 	zapLogger, err := zap.NewDevelopment()
 	if err != nil {
 		utils.ExitWithError(utils.ExitError, err)
-	}
-
-	if options.Pid == 0 && options.Name != "" {
-		options.Pid, err = getPIDByProcessName(options.Name)
-		if err != nil {
-			utils.ExitWithError(utils.ExitError, err)
-		}
 	}
 	childProcess, err := util.GetChildProcesses(uint32(options.Pid), zapr.NewLogger(zapLogger).WithName("Clock Attack"))
 	if err != nil {
