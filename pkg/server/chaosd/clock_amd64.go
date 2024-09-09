@@ -193,8 +193,11 @@ func (c clockAttack) Attack(options core.AttackConfig, env Environment) error {
 				continue
 			}
 			if lastOpt.Pid == opt.Pid {
-				return fmt.Errorf("plz recover the last clock attack on pid : %d first \n"+
-					"chaosd recover %s", opt.Pid, exp.Uid)
+				log.Warn("found last attack, recover it", zap.Int("pid", opt.Pid))
+				err = c.Recover(*exp, env)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
