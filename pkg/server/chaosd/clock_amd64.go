@@ -84,6 +84,37 @@ func (c clockAttack) Attack(options core.AttackConfig, env Environment) error {
 	if opt, ok = options.(*core.ClockOption); !ok {
 		return fmt.Errorf("AttackConfig -> *ClockOption meet error")
 	}
+	exps, err := env.Chaos.Search(&core.SearchCommand{
+		Status: core.Success,
+		Kind:   core.ClockAttack,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, exp := range exps {
+		if exp.Kind == core.ClockAttack {
+			lastOptions, err := exp.GetRequestCommand()
+			if err != nil {
+				return err
+			}
+			var lastOpt *core.ClockOption
+			var ok bool
+			if lastOpt, ok = lastOptions.(*core.ClockOption); !ok {
+				log.Warn("AttackConfig -> *ClockOption meet error")
+				continue
+			}
+			if lastOpt.Pid == opt.Pid {
+				log.Warn("found last attack, recover it", zap.Int("pid", opt.Pid))
+				err = c.Recover(*exp, env)
+				if err != nil {
+					return err
+				}
+				log.Info("recover success", zap.Int("pid", opt.Pid))
+			}
+		}
+	}
+
 	runtime.LockOSThread()
 	defer func() {
 		runtime.UnlockOSThread()
@@ -170,39 +201,6 @@ func (c clockAttack) Attack(options core.AttackConfig, env Environment) error {
 	}
 
 	funcBytes, err := program.ReadSlice(originAddr, size)
-
-	exps, err := env.Chaos.Search(&core.SearchCommand{
-		Status: core.Success,
-		Kind:   core.ClockAttack,
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, exp := range exps {
-		if exp.Kind == core.ClockAttack {
-			lastOptions, err := exp.GetRequestCommand()
-			if err != nil {
-				return err
-			}
-
-			var lastOpt *core.ClockOption
-			var ok bool
-			if lastOpt, ok = lastOptions.(*core.ClockOption); !ok {
-				log.Warn("AttackConfig -> *ClockOption meet error")
-				continue
-			}
-			if lastOpt.Pid == opt.Pid {
-				log.Warn("found last attack, recover it", zap.Int("pid", opt.Pid))
-				runtime.UnlockOSThread()
-				err = c.Recover(*exp, env)
-				if err != nil {
-					return err
-				}
-				log.Info("recover success", zap.Int("pid", opt.Pid))
-			}
-		}
-	}
 
 	opt.Store = core.ClockFuncStore{
 		CodeOfGetClockFunc: *funcBytes,
