@@ -76,13 +76,16 @@ func processClockAttack(options *core.ClockOption, chaos *chaosd.Server) {
 	if err != nil {
 		utils.ExitWithError(utils.ExitBadArgs, err)
 	}
-	zapLogger, err := zap.NewDevelopment()
-	if err != nil {
-		utils.ExitWithError(utils.ExitError, err)
-	}
-	childProcess, err := util.GetChildProcesses(uint32(options.Pid), zapr.NewLogger(zapLogger).WithName("Clock Attack"))
-	if err != nil {
-		utils.ExitWithError(utils.ExitError, err)
+	var childProcess []uint32
+	if options.WithChild {
+		zapLogger, err := zap.NewDevelopment()
+		if err != nil {
+			utils.ExitWithError(utils.ExitError, err)
+		}
+		childProcess, err = util.GetChildProcesses(uint32(options.Pid), zapr.NewLogger(zapLogger).WithName("Clock Attack"))
+		if err != nil {
+			utils.ExitWithError(utils.ExitError, err)
+		}
 	}
 	uid, err := chaos.ExecuteAttack(chaosd.ClockAttack, options, core.CommandMode)
 	if err != nil {

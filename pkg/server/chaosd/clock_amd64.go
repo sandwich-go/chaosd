@@ -194,10 +194,12 @@ func (c clockAttack) Attack(options core.AttackConfig, env Environment) error {
 			}
 			if lastOpt.Pid == opt.Pid {
 				log.Warn("found last attack, recover it", zap.Int("pid", opt.Pid))
+				runtime.UnlockOSThread()
 				err = c.Recover(*exp, env)
 				if err != nil {
 					return err
 				}
+				log.Info("recover success", zap.Int("pid", opt.Pid))
 			}
 		}
 	}
