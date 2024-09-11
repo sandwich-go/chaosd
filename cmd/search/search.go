@@ -72,22 +72,24 @@ func searchCommandFunc(chaos *chaosd.Server, options *core.SearchCommand) {
 	if err != nil {
 		utils.ExitWithError(utils.ExitError, err)
 	}
-
-	tw := tablewriter.NewWriter(os.Stdout)
 	if options.Kind == "clock" && options.Short {
 		for _, exp := range exps {
 			attackConfig := &core.ClockOption{}
 			if err := json.Unmarshal([]byte(exp.RecoverCommand), attackConfig); err != nil {
 				continue
 			}
-			tw.Append([]string{
-				exp.CreatedAt.Format(time.RFC3339),
-				fmt.Sprintf("pid: %d", attackConfig.Pid),
-				fmt.Sprintf("process name: %s", attackConfig.Name),
-				fmt.Sprintf("time offset: %s", attackConfig.TimeOffset),
-			})
+			var str = fmt.Sprintf("create time: %s,", exp.CreatedAt.Format(time.RFC3339))
+			if attackConfig.Pid != 0 {
+				str += fmt.Sprintf(" pid: %d,", attackConfig.Pid)
+			}
+			if attackConfig.Name != "" {
+				str += fmt.Sprintf(" process name: %s,", attackConfig.Name)
+			}
+			str += fmt.Sprintf(" time offset: %s", attackConfig.TimeOffset)
+			fmt.Println(str)
 		}
 	} else {
+		tw := tablewriter.NewWriter(os.Stdout)
 		tw.SetHeader([]string{"UID", "Kind", "Action", "Status", "Create Time", "Configuration"})
 		tw.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
 		tw.SetAlignment(3)
@@ -99,9 +101,8 @@ func searchCommandFunc(chaos *chaosd.Server, options *core.SearchCommand) {
 				exp.Uid, exp.Kind, exp.Action, exp.Status, exp.CreatedAt.Format(time.RFC3339), exp.RecoverCommand,
 			})
 		}
+		tw.Render()
 	}
-
-	tw.Render()
 
 	utils.NormalExit("")
 }
