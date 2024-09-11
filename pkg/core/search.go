@@ -25,6 +25,7 @@ type SearchCommand struct {
 	Limit  uint32
 	Offset uint32
 	UID    string
+	Short  bool
 }
 
 func (s SearchCommand) Validate() error {

@@ -14,6 +14,8 @@
 package search
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -51,11 +53,12 @@ func NewSearchCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&options.Status, "status", "s", "", "attack status, "+
 		"supported value: created, success, error, destroyed, revoked")
 	cmd.Flags().StringVarP(&options.Kind, "kind", "k", "", "attack kind, "+
-		"supported value: network, process, stress, disk, host, jvm")
+		"supported value: network, process, stress, disk, host, jvm, clock")
 	cmd.Flags().Uint32VarP(&options.Offset, "offset", "o", 0, "starting to search attacks from offset")
 	cmd.Flags().Uint32VarP(&options.Limit, "limit", "l", 0, "limit the count of attacks")
 	cmd.Flags().BoolVar(&options.Asc, "asc", false, "order by CreateTime, "+
 		"default value is false that means order by CreateTime desc")
+	cmd.Flags().BoolVarP(&options.Short, "short", "S", false, "show short format of chaos attack")
 
 	return cmd
 }
@@ -71,17 +74,31 @@ func searchCommandFunc(chaos *chaosd.Server, options *core.SearchCommand) {
 	}
 
 	tw := tablewriter.NewWriter(os.Stdout)
-	tw.SetHeader([]string{"UID", "Kind", "Action", "Status", "Create Time", "Configuration"})
-	tw.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
-	tw.SetAlignment(3)
-	tw.SetRowSeparator("-")
-	tw.SetCenterSeparator(" ")
-	tw.SetColumnSeparator(" ")
-
-	for _, exp := range exps {
-		tw.Append([]string{
-			exp.Uid, exp.Kind, exp.Action, exp.Status, exp.CreatedAt.Format(time.RFC3339), exp.RecoverCommand,
-		})
+	if options.Kind == "clock" && options.Short {
+		for _, exp := range exps {
+			attackConfig := &core.ClockOption{}
+			if err := json.Unmarshal([]byte(exp.RecoverCommand), attackConfig); err != nil {
+				continue
+			}
+			tw.Append([]string{
+				exp.CreatedAt.Format(time.RFC3339),
+				fmt.Sprintf("pid: %d", attackConfig.Pid),
+				fmt.Sprintf("process name: %s", attackConfig.Name),
+				fmt.Sprintf("time offset: %s", attackConfig.TimeOffset),
+			})
+		}
+	} else {
+		tw.SetHeader([]string{"UID", "Kind", "Action", "Status", "Create Time", "Configuration"})
+		tw.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
+		tw.SetAlignment(3)
+		tw.SetRowSeparator("-")
+		tw.SetCenterSeparator(" ")
+		tw.SetColumnSeparator(" ")
+		for _, exp := range exps {
+			tw.Append([]string{
+				exp.Uid, exp.Kind, exp.Action, exp.Status, exp.CreatedAt.Format(time.RFC3339), exp.RecoverCommand,
+			})
+		}
 	}
 
 	tw.Render()
