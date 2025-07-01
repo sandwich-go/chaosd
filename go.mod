@@ -171,6 +171,7 @@ require (
 replace (
 	// github.com/chaos-mesh/chaos-mesh require /api/v1alpha1 v0.0.0, but v0.0.0 can not be found, so use replace here
 	github.com/chaos-mesh/chaos-mesh/api => github.com/chaos-mesh/chaos-mesh/api v0.0.0-20220717162241-8644a0680800
+	github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f => github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 	k8s.io/api => k8s.io/api v0.23.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.1
